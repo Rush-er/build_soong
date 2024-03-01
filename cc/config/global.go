@@ -108,9 +108,8 @@ var (
 		// This macro allows the bionic versioning.h to indirectly determine whether the
 		// option -Wunguarded-availability is on or not.
 		"-D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__",
-
-		// Turn off FMA which got enabled by default in clang-r445002 (http://b/218805949)
-		"-ffp-contract=off",
+		// Use zstd to compress debug data.
+		"-gz=zstd",
 	}
 
 	commonGlobalConlyflags = []string{}
@@ -140,9 +139,6 @@ var (
 		"-Werror=format-security",
 		"-nostdlibinc",
 
-		// Emit additional debug info for AutoFDO
-		"-fdebug-info-for-profiling",
-
 		// Enable Hot Cold splitting optimization.
 		"-mllvm -hot-cold-split=true",
 	}
@@ -171,7 +167,9 @@ var (
 		"-Wl,--exclude-libs,libunwind.a",
 	}
 
-	deviceGlobalLldflags = append(deviceGlobalLdflags, commonGlobalLldflags...)
+	deviceGlobalLldflags = append(append(deviceGlobalLdflags, commonGlobalLldflags...),
+		"-Wl,--compress-debug-sections=zstd",
+	)
 
 	hostGlobalCflags = []string{}
 
@@ -243,6 +241,34 @@ var (
 		// New warnings to be fixed after clang-r475365
 		"-Wno-error=single-bit-bitfield-constant-conversion", // http://b/243965903
 		"-Wno-error=enum-constexpr-conversion",               // http://b/243964282
+		// YAAP additions since we will be minimally updating external platform
+		"-Wno-error=deprecated-non-prototype",
+		"-Wno-error=strict-prototypes",
+		"-Wno-error=enum-conversion",
+		"-Wno-error=unused-value",
+		"-Wno-error=single-bit-bitfield-constant-conversion",
+		"-Wno-error=unused-private-field",
+		"-Wno-unused-command-line-argument",
+		"-Wno-error=thread-safety-analysis",
+		"-Wno-error=unguarded-availability",
+		"-Wno-error=logical-op-parentheses",
+		"-Wno-error=shadow-uncaptured-local",
+		"-Wno-error=thread-safety-reference-return",
+		"-Wno-error=vla-cxx-extension",
+		"-Wno-error=invalid-offsetof",
+		// TODO: Enable this warning http://b/315245071
+		"-Wno-error=fortify-source",
+		// This rarely indicates a bug. http://b/145210666
+		"-Wno-error=reorder-init-list",
+		// Probably a new compiler thing. 1000s of error.
+		"-Wno-error=missing-field-initializers",
+		"-Wno-error=format", // Disable only the one that is bothering.
+		"-Wno-error=integer-overflow",
+		"-Wno-error=packed-non-pod",
+		"-Wno-error=shadow",
+		"-Wno-error=tautological-negation-compare",
+		"-Wno-error=tautological-undefined-compare",
+		"-Wno-error=unused-variable",
 	}
 
 	noOverride64GlobalCflags = []string{}
@@ -259,6 +285,8 @@ var (
 		"-Wno-misleading-indentation",
 		"-Wno-array-parameter",
 		"-Wno-gnu-offsetof-extensions",
+		// TODO: Enable this warning http://b/315245071
+		"-Wno-error=fortify-source",
 	}
 
 	// Extra cflags for external third-party projects to disable warnings that
@@ -308,8 +336,8 @@ var (
 
 	// prebuilts/clang default settings.
 	ClangDefaultBase         = "prebuilts/clang/host"
-	ClangDefaultVersion      = "clang-r487747c"
-	ClangDefaultShortVersion = "17"
+	ClangDefaultVersion      = "clang-r522817"
+	ClangDefaultShortVersion = "18"
 
 	// Directories with warnings from Android.bp files.
 	WarningAllowedProjects = []string{
@@ -357,14 +385,14 @@ func init() {
 		// Automatically initialize any uninitialized stack variables.
 		// Prefer zero-init if multiple options are set.
 		if ctx.Config().IsEnvTrue("AUTO_ZERO_INITIALIZE") {
-			flags = append(flags, "-ftrivial-auto-var-init=zero -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang -Wno-unused-command-line-argument")
+			flags = append(flags, "-ftrivial-auto-var-init=zero -Wno-unused-command-line-argument")
 		} else if ctx.Config().IsEnvTrue("AUTO_PATTERN_INITIALIZE") {
 			flags = append(flags, "-ftrivial-auto-var-init=pattern")
 		} else if ctx.Config().IsEnvTrue("AUTO_UNINITIALIZE") {
 			flags = append(flags, "-ftrivial-auto-var-init=uninitialized")
 		} else {
 			// Default to zero initialization.
-			flags = append(flags, "-ftrivial-auto-var-init=zero -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang -Wno-unused-command-line-argument")
+			flags = append(flags, "-ftrivial-auto-var-init=zero -Wno-unused-command-line-argument")
 		}
 
 		// Workaround for ccache with clang.

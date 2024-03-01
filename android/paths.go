@@ -1083,7 +1083,7 @@ func pathForSource(ctx PathContext, pathComponents ...string) (SourcePath, error
 
 // pathForSourceRelaxed creates a SourcePath from pathComponents, but does not check that it exists.
 // It differs from pathForSource in that the path is allowed to exist outside of the PathContext.
-func pathForSourceRelaxed(ctx PathGlobContext, pathComponents ...string) (SourcePath, error) {
+func pathForSourceRelaxed(ctx PathContext, pathComponents ...string) (SourcePath, error) {
 	p := filepath.Join(pathComponents...)
 	ret := SourcePath{basePath{p, ""}}
 
@@ -1161,7 +1161,7 @@ func PathForSourceRelaxed(ctx PathGlobContext, pathComponents ...string) SourceP
 	}
 
 	if modCtx, ok := ctx.(ModuleContext); ok && ctx.Config().AllowMissingDependencies() {
-		exists, err := existsWithDependencies(modCtx, path)
+		exists, err := existsWithDependencies(ctx, path)
 		if err != nil {
 			reportPathError(ctx, err)
 		}

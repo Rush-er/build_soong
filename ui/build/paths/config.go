@@ -122,8 +122,9 @@ var Configuration = map[string]PathConfig{
 	"stubby":  Allowed,
 	"tr":      Allowed,
 	"unzip":   Allowed,
-	"zcat":     Allowed,
+	"zcat":    Allowed,
 	"zip":     Allowed,
+	"zipdetails": Allowed,
 
 	// Kernel tools (VDSO)
 	"aarch64-linux-android-ar":    Allowed,
